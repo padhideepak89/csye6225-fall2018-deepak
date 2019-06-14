@@ -1,0 +1,46 @@
+[
+	{
+		"ParameterKey": "PublicSubnet1",
+		"ParameterValue": "10.0.1.0/24"
+	},
+	{
+		"ParameterKey": "AvailabilityZoneA",
+		"ParameterValue": "us-east-1a"
+	},
+	{
+		"ParameterKey": "PublicSubnet2",
+		"ParameterValue": "10.0.2.0/24"
+	},
+	{
+		"ParameterKey": "AvailabilityZoneB",
+		"ParameterValue": "us-east-1b"
+	},
+	{
+		"ParameterKey": "PublicSubnet3",
+		"ParameterValue": "10.0.3.0/24"
+	},
+	{
+		"ParameterKey": "PrivateSubnet1",
+		"ParameterValue": "10.0.4.0/24"
+	},
+	{
+		"ParameterKey": "PrivateSubnet2",
+		"ParameterValue": "10.0.5.0/24"
+	},
+	{
+		"ParameterKey": "PrivateSubnet3",
+		"ParameterValue": "10.0.6.0/24"
+	},
+	{
+		"ParameterKey": "IpAddr",
+		"ParameterValue": "0.0.0.0/0"
+	},
+	{
+		"ParameterKey": "VpcCIDR",
+		"ParameterValue": "10.0.0.0/16"
+	},
+	{
+		"ParameterKey": "AvailabilityZoneC",
+		"ParameterValue": "us-east-1c"
+	}
+]

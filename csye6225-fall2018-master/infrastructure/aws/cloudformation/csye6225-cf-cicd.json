@@ -1,0 +1,423 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Sample Template Ec2instance, DBinstances With SecurityGroup",
+    "Parameters": {
+        "DeployBucket": {
+            "Description": "The database instance type",
+            "Type": "String"
+        },
+        "TravisUser": {
+            "Description": "Travis-ci user",
+            "Type": "String"
+        },
+        "AttachBucket": {
+            "Description": "Attachment bucket",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "TravisUploadToS3": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "Description": "Policy for Travis to put objects in S3",
+                "Path": "/",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject*"
+                            ],
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "DeployBucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "lambda:*",
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "Users": [
+                    {
+                        "Ref": "TravisUser"
+                    }
+                ]
+            }
+        },
+        "TravisCodeDeploy": {
+            "Type": "AWS::IAM::ManagedPolicy",
+            "Properties": {
+                "Description": "Policy for Travis to Deploy S3",
+                "Path": "/",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:RegisterApplicationRevision",
+                                "codedeploy:GetApplicationRevision"
+                            ],
+                            "Resource": [
+                                "arn:aws:codedeploy:*:*:application:CSYE6225CodeDeployApplication"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:CreateDeployment",
+                                "codedeploy:GetDeployment"
+                            ],
+                            "Resource": [
+                                "*"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codedeploy:GetDeploymentConfig"
+                            ],
+                            "Resource": [
+                                "arn:aws:codedeploy:*:*:deploymentconfig:CodeDeployDefault.OneAtATime",
+                                "arn:aws:codedeploy:*:*:deploymentconfig:CodeDeployDefault.HalfAtATime",
+                                "arn:aws:codedeploy:*:*:deploymentconfig:CodeDeployDefault.AllAtOnce"
+                            ]
+                        }
+                    ]
+                },
+                "Users": [
+                    {
+                        "Ref": "TravisUser"
+                    }
+                ]
+            }
+        },
+        "CodeDeployServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": "CodeDeployServiceRole",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "codedeploy.amazonaws.com"
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+                ],
+                "Path": "/"
+            }
+        },
+        "Ec2Role": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": "CodeDeployEC2ServiceRole",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/"
+            }
+        },
+        "CodeDeployLambdaServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": "CodeDeployLambdaServiceRole",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "codedeploy.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda"
+                ],
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Ec2_Cloudwatch",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "cloudwatch:PutMetricData",
+                                        "ec2:DescribeTags",
+                                        "logs:PutLogEvents",
+                                        "logs:DescribeLogStreams",
+                                        "logs:DescribeLogGroups",
+                                        "logs:CreateLogStream",
+                                        "logs:CreateLogGroup"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "Ec2_sns",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "sns:*",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "lambdaServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": "lambda_Dynamodb_SES",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+                    "arn:aws:iam::aws:policy/AmazonSESFullAccess",
+                    "arn:aws:iam::aws:policy/AWSLambdaFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonSNSFullAccess"
+                ],
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "lambda_DB",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "arn:aws:logs:*:*:*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "dynamodb:*"
+                                    ],
+                                    "Resource": [
+                                        "arn:aws:dynamodb:us-east-1:*:table/*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "RolePolicies": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "CodeDeploy-Ec2-S3",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {   
+                            "Sid": "CodeToListBucket",
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:List*"
+                            ],
+                            "Resource": "arn:aws:s3:::*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "sns:*",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudwatch:PutMetricData",
+                                "ec2:DescribeTags",
+                                "logs:PutLogEvents",
+                                "logs:DescribeLogStreams",
+                                "logs:DescribeLogGroups",
+                                "logs:CreateLogStream",
+                                "logs:CreateLogGroup"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Sid": "CodeToPutObjectInS3",
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject*",
+                                "s3:DeleteObject*"
+                            ],
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:s3:::",
+                                        {
+                                            "Ref": "AttachBucket"
+                                        },
+                                        "/*"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "Ec2Role"
+                    }
+                ]
+            }
+        },
+        "RootInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "Ec2Role"
+                    }
+                ]
+            }
+        },
+        "CodeDeployApplication": {
+            "Type": "AWS::CodeDeploy::Application",
+            "Properties": {
+                "ApplicationName": "CSYE6225CodeDeployApplication",
+                "ComputePlatform": "Server"
+            }
+        },
+        "DeploymentGroup": {
+            "Type": "AWS::CodeDeploy::DeploymentGroup",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplication"
+                },
+                "DeploymentGroupName": "Codedeploy_groupname",
+                "DeploymentStyle": {
+                    "DeploymentType": "IN_PLACE",
+                    "DeploymentOption": "WITHOUT_TRAFFIC_CONTROL"
+                },
+                "Ec2TagFilters": [
+                    {
+                        "Key": "Name",
+                        "Type": "KEY_AND_VALUE",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-csye6225-ec2"
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                "ServiceRoleArn": {
+                    "Fn::GetAtt": [
+                        "CodeDeployServiceRole",
+                        "Arn"
+                    ]
+                }
+            }
+        },
+        "CodeDeployApplicationforLambda": {
+            "Type": "AWS::CodeDeploy::Application",
+            "Properties": {
+                "ApplicationName": "CSYE6225CodeDeploy-Lambda",
+                "ComputePlatform": "Lambda"
+            }
+        },
+        "DeploymentGroupforLambda": {
+            "Type": "AWS::CodeDeploy::DeploymentGroup",
+            "Properties": {
+                "ApplicationName": {
+                    "Ref": "CodeDeployApplicationforLambda"
+                },
+                "DeploymentGroupName": "aws-lambda",
+                "DeploymentConfigName": "CodeDeployDefault.LambdaAllAtOnce",
+                "DeploymentStyle": {
+                    "DeploymentType": "BLUE_GREEN",
+                    "DeploymentOption": "WITH_TRAFFIC_CONTROL"
+                },
+                "ServiceRoleArn": {
+                    "Fn::GetAtt": [
+                        "CodeDeployLambdaServiceRole",
+                        "Arn"
+                    ]
+                }
+            }
+        },
+        "s3bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Ref": "DeployBucket"
+                }
+            }
+        }
+    }
+}

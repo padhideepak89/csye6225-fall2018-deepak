@@ -1,0 +1,622 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Sample Template Ec2instance, DBinstances With SecurityGroup",
+    "Parameters": {
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "ConstraintDescription": "Existing or Newly created EC2 KeyPair"
+        },
+        "InstanceType": {
+            "Description": "EC2 instance type.",
+            "Type": "String",
+            "Default": "t2.micro"
+        },
+        "VPC": {
+            "Description": "VPC.",
+            "Type": "String"
+        },
+        "Ec2Name": {
+            "Description": "Ec2 name",
+            "Type": "String"
+        },
+        "SSHLocation": {
+            "Description": "The IP address range that can be used to ssh/ https to the EC2 instances",
+            "Type": "String",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+        },
+        "SubnetId": {
+            "Description": "Public SubnetId in VPC ",
+            "Type": "String"
+        },
+        "SubnetId1": {
+            "Description": "Private SubnetId in RDS instance",
+            "Type": "String"
+        },
+        "SubnetId2": {
+            "Description": "Private SubnetId in RDS instance",
+            "Type": "String"
+        },
+        "HostedZone": {
+            "Type": "String",
+            "Description": "The DNS name of an existing Amazon Route 53 hosted zone",
+            "AllowedPattern": "(?!-)[a-zA-Z0-9-.]{1,63}(?<!-)",
+            "ConstraintDescription": "must be a valid DNS zone name."
+        },
+        "HashKeyElementName": {
+            "Description": "HashType PrimaryKey Name",
+            "Type": "String",
+            "AllowedPattern": "[a-zA-Z0-9]*",
+            "MinLength": "1",
+            "MaxLength": "2048",
+            "ConstraintDescription": "must contain only alphanumberic characters"
+        },
+        "HashKeyElementType": {
+            "Description": "HashType PrimaryKey Type",
+            "Type": "String",
+            "Default": "S",
+            "AllowedPattern": "[S|N]",
+            "MinLength": "1",
+            "MaxLength": "1",
+            "ConstraintDescription": "must be either S or N"
+        },
+        "ReadCapacityUnits": {
+            "Description": "Provisioned read throughput",
+            "Type": "Number",
+            "Default": "5",
+            "MinValue": "5",
+            "MaxValue": "10000",
+            "ConstraintDescription": "must be between 5 and 10000"
+        },
+        "WriteCapacityUnits": {
+            "Description": "Provisioned write throughput",
+            "Type": "Number",
+            "Default": "5",
+            "MinValue": "5",
+            "MaxValue": "10000",
+            "ConstraintDescription": "must be between 5 and 10000"
+        },
+        "TableName": {
+            "Description": "Name of the DynamoDB Table",
+            "Type": "String"
+        },
+        "DBUser": {
+            "NoEcho": "true",
+            "Description": "The database admin account username",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "16",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+        },
+        "DBPassword": {
+            "NoEcho": "true",
+            "Description": "The database admin account password",
+            "Type": "String",
+            "MinLength": "8",
+            "MaxLength": "41",
+            "AllowedPattern": "[a-zA-Z0-9]*",
+            "ConstraintDescription": "must contain only alphanumeric characters."
+        },
+        "DBInstanceClass": {
+            "Description": "The database instance type",
+            "Type": "String",
+            "Default": "db.t2.medium",
+            "AllowedValues": [
+                "db.t2.medium"
+            ],
+            "ConstraintDescription": "must select a valid database instance type."
+        },
+        "InsProfile": {
+            "Description": "The ec2 role",
+            "Type": "String"
+        },
+        "S3Bucket": {
+            "Description": "The database instance type",
+            "Type": "String"
+        },
+        "MultiAZ": {
+            "Description": "Multi-AZ master database",
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "ConstraintDescription": "must be true or false."
+        },
+        "PubliclyAccessible": {
+            "Description": "PubliclyAccessible or not",
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "ConstraintDescription": "must be true or false."
+        },
+        "DBInstanceIdentifier": {
+            "Type": "String"
+        },
+        "DBName": {
+            "Type": "String"
+        },
+        "Subnetgroupname": {
+            "Description": "DB subnet group",
+            "Type": "String"
+        }
+    },
+    "Mappings": {
+        "AWSInstanceType2Arch": {
+            "t2.micro": {
+                "Arch": "HVM64"
+            }
+        },
+        "AWSRegionArch2AMI": {
+            "us-east-1": {
+                "HVM64": "ami-9887c6e7"
+            }
+        }
+    },
+    "Conditions": {
+        "Is-EC2-VPC": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AWS::Region"
+                },
+                "us-east-1"
+            ]
+        }
+    },
+    "Resources": {
+        "EC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSRegionArch2AMI",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        {
+                            "Fn::FindInMap": [
+                                "AWSInstanceType2Arch",
+                                {
+                                    "Ref": "InstanceType"
+                                },
+                                "Arch"
+                            ]
+                        }
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "VolumeSize": "20",
+                            "DeleteOnTermination": "true",
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "InsProfile"
+                },
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "SecurityGroupBySG"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "SubnetId"
+                        }
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "#!/bin/bash",
+                                "sudo su",
+                                "yum update -y",
+                                "yum install httpd -y",
+                                "systemctl enable httpd.service",
+                                "systemctl start httpd.service",
+                                "#yum install epel-release –y",
+                                "#yum install python-pip –y",
+                                "#pip install awscli",
+                                "yum install ruby -y",
+                                "yum install wget -y",
+                                "yum install python -y",
+                                "sudo yum install unzip -y",
+                                "wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install",
+                                "chmod +x ./install",
+                                "./install auto",
+                                "service codedeploy-agent start",
+                                "mkdir -p /var/awslogs/etc/",
+                                "cd /var/awslogs/etc/",
+                                "wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
+                                "unzip AmazonCloudWatchAgent.zip",
+                                "chmod +x install.sh",
+                                "sh install.sh",
+                                "mkdir -p /usr/share/collectd",
+                                "cd /usr/share/collectd",
+                                "touch types.db",
+                                "cd /opt/aws/amazon-cloudwatch-agent/bin/",
+                                "touch config.json",
+                                "echo '{\"agent\": {\"metrics_collection_interval\": 10,\"logfile\": \"/var/logs/amazon-cloudwatch-agent.log\"},\"logs\": {\"logs_collected\": {\"files\": {\"collect_list\": [{\"file_path\": \"/opt/tomcat/logs/catalina.out\",\"log_group_name\": \"csye6225_fall2018\",\"log_stream_name\": \"webapp\",\"timestamp_format\": \"%H:%M:%S %y %b %-d\"}]}}},\"metrics\": {\"metrics_collected\": {\"statsd\": {\"service_address\": \":8125\",\"metrics_collection_interval\": 10,\"metrics_aggregation_interval\": 0}}}}' >> config.json",
+                                "cd /opt/aws/amazon-cloudwatch-agent/bin",
+                                "./amazon-cloudwatch-agent-ctl -m ec2 -a fetch-config -c file:config.json -s",
+                                "yum install ruby ntp wget java-1.8.0-openjdk-devel -y",
+                                "systemctl start ntpd",
+                                "systemctl enable ntpd",
+                                "groupadd tomcat",
+                                "useradd -M -s /bin/nologin -g tomcat -d /opt/tomcat tomcat",
+                                "cd /tmp",
+                                "wget http://apache.mirrors.pair.com/tomcat/tomcat-8/v8.5.34/bin/apache-tomcat-8.5.34.tar.gz",
+                                "mkdir /opt/tomcat",
+                                "sudo tar xvf apache-tomcat-8*tar.gz -C /opt/tomcat --strip-components=1",
+                                "cd /opt/tomcat",
+                                "chgrp -R tomcat /opt/tomcat",
+                                "chmod -R g+r conf",
+                                "chmod g+x conf",
+                                "chown -R tomcat webapps/ work/ temp/ logs/",
+                                "cd /opt && sudo chown -R tomcat tomcat/",
+                                "#cd /usr/lib/systemd/system",
+                                "cd /opt/tomcat",
+                                "mkdir uploads",
+                                "chmod o+rwx uploads/",
+                                "cd /etc/systemd/system",
+                                "touch tomcat.service",
+                                "echo '[Unit]' > tomcat.service",
+                                "echo 'Description=Apache Tomcat Web Application Container' >> tomcat.service",
+                                "echo 'After=syslog.target network.target' >> tomcat.service",
+                                "echo '[Service]' >> tomcat.service",
+                                "echo 'Type=forking' >> tomcat.service",
+                                "echo 'Environment=JAVA_HOME=/usr/lib/jvm/jre' >> tomcat.service",
+                                "echo 'Environment=CATALINA_PID=/opt/tomcat/temp/tomcat.pid' >> tomcat.service",
+                                "echo 'Environment=CATALINA_HOME=/opt/tomcat' >> tomcat.service",
+                                "echo 'Environment=CATALINA_BASE=/opt/tomcat' >> tomcat.service",
+                                "#echo 'Environment=\"CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC\"' >> tomcat.service",
+                                "echo 'Environment=\"JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom\"' >> tomcat.service",
+                                "echo 'ExecStart=/opt/tomcat/bin/startup.sh' >> tomcat.service",
+                                "echo 'ExecStop=/bin/kill -15 $MAINPID' >> tomcat.service",
+                                "echo 'User=tomcat' >> tomcat.service",
+                                "echo 'Group=tomcat' >> tomcat.service",
+                                "echo 'UMask=0007' >> tomcat.service",
+                                "echo 'RestartSec=10' >> tomcat.service",
+                                "echo 'Restart=always' >> tomcat.service",
+                                "echo '[Install]' >> tomcat.service",
+                                "echo 'WantedBy=multi-user.target' >> tomcat.service",
+                                "#systemctl daemon-reload",
+                                "cd /opt/tomcat/bin",
+                                "touch setenv.sh",
+                                "echo 'JAVA_OPTS=\"-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true\"' >> setenv.sh",
+                                "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.profiles.active=Dev\"' >> setenv.sh",
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.url=jdbc:mysql://",
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "myDB",
+                                                    "Endpoint.Address"
+                                                ]
+                                            },
+                                            ":3306/csye6225\"' >> setenv.sh \n"
+                                        ]
+                                    ]
+                                },
+                                "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.username=csye6225master\"'  >> setenv.sh",
+                                "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.password=csye6225password\"'  >> setenv.sh",
+                                "#systemctl daemon-reload",
+                                "systemctl start amazon-cloudwatch-agent.service",
+                                "systemctl stop amazon-cloudwatch-agent.service",
+                                "systemctl restart amazon-cloudwatch-agent.service",
+                                "systemctl enable tomcat.service",
+                                "systemctl start tomcat.service",
+                                "yum install mariadb mariadb-server -y",
+                                "systemctl enable mariadb.service",
+                                "systemctl start mariadb.service"
+                            ]
+                        ]
+                    }
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Ref": "Ec2Name"
+                        }
+                    }
+                ]
+            }
+        },
+        "myDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": {
+                            "Ref": "HashKeyElementName"
+                        },
+                        "AttributeType": {
+                            "Ref": "HashKeyElementType"
+                        }
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": {
+                            "Ref": "HashKeyElementName"
+                        },
+                        "KeyType": "HASH"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": {
+                        "Ref": "ReadCapacityUnits"
+                    },
+                    "WriteCapacityUnits": {
+                        "Ref": "WriteCapacityUnits"
+                    }
+                },
+                "TimeToLiveSpecification": {
+                    "AttributeName": "TimeTolive",
+                    "Enabled": "TRUE"
+                },
+                "TableName": "csye6225"
+            }
+        },
+        "myDB": {
+            "Type": "AWS::RDS::DBInstance",
+            "Properties": {
+                "AllocatedStorage": "5",
+                "DBInstanceClass": {
+                    "Ref": "DBInstanceClass"
+                },
+                "DBInstanceIdentifier": {
+                    "Ref": "DBInstanceIdentifier"
+                },
+                "DBSubnetGroupName": {
+                    "Ref": "myDBSubnetGroup"
+                },
+                "Engine": "MySQL",
+                "MultiAZ": {
+                    "Ref": "MultiAZ"
+                },
+                "MasterUsername": {
+                    "Ref": "DBUser"
+                },
+                "MasterUserPassword": {
+                    "Ref": "DBPassword"
+                },
+                "PubliclyAccessible": {
+                    "Ref": "PubliclyAccessible"
+                },
+                "VPCSecurityGroups": {
+                    "Fn::If": [
+                        "Is-EC2-VPC",
+                        [
+                            {
+                                "Fn::GetAtt": [
+                                    "DBSecurityGroup",
+                                    "GroupId"
+                                ]
+                            }
+                        ],
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "DBName": {
+                    "Ref": "DBName"
+                }
+            }
+        },
+        "myDBSubnetGroup": {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription": "description",
+                "SubnetIds": [
+                    {
+                        "Ref": "SubnetId1"
+                    },
+                    {
+                        "Ref": "SubnetId2"
+                    }
+                ]
+            }
+        },
+        "MyDNSRecord": {
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "HostedZoneName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Ref": "HostedZone"
+                            },
+                            "."
+                        ]
+                    ]
+                },
+                "Comment": "DNS name for my instance.",
+                "Name": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Ref": "EC2Instance"
+                            },
+                            ".",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ".",
+                            {
+                                "Ref": "HostedZone"
+                            },
+                            "."
+                        ]
+                    ]
+                },
+                "Type": "TXT",
+                "TTL": "60",
+                "ResourceRecords": [
+                    "\"csye-6225-fall2018\""
+                ]
+            }
+        },
+        "SecurityGroupBySG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "allow connections from specified source security group",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "SSHLocation"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": {
+                            "Ref": "SSHLocation"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": {
+                            "Ref": "SSHLocation"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "CidrIp": {
+                            "Ref": "SSHLocation"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-csye6225-webapp"
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "s3bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Ref": "S3Bucket"
+                }
+            }
+        },
+        "DBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Condition": "Is-EC2-VPC",
+            "Properties": {
+                "GroupDescription": "allow connections from specified source security group and ec2 Security group",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3306",
+                        "ToPort": "3306",
+                        "SourceSecurityGroupId": {
+                            "Ref": "SecurityGroupBySG"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-csye6225-rds"
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "JDBCConnectionString": {
+            "Description": "JDBC connection string for the database",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "jdbc:mysql://",
+                        {
+                            "Fn::GetAtt": [
+                                "myDB",
+                                "Endpoint.Address"
+                            ]
+                        },
+                        ":",
+                        {
+                            "Fn::GetAtt": [
+                                "myDB",
+                                "Endpoint.Port"
+                            ]
+                        },
+                        "/",
+                        {
+                            "Ref": "DBName"
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+}

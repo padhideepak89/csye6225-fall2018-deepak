@@ -1,0 +1,34 @@
+language: Java
+
+env:
+  global:
+  - AWS_ACCESS_KEY_ID=$access_key_id
+  - AWS_SECRET_ACCESS_KEY=$secret_access_key
+  - AWS_DEFAULT_REGION=us-east-1
+  
+on:
+   branch: master
+    
+jdk:
+  - oraclejdk8
+
+sudo: false
+
+before_install:
+  - pip install --user awscli
+  - export PATH=$PATH:$HOME/.local/bin
+
+script:
+  - pwd
+  - cd Lambda
+  - gradle build
+  - cd build/distributions
+  - pwd
+  - ls -al
+  - cd ../../..
+  - pwd
+  - ls -al
+  - cd script
+  - chmod +x upload.sh
+  - pwd
+  - ./upload.sh

@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.timgroup:java-statsd-client:3.1.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.timgroup/java-statsd-client/3.1.0/aa2f429cc8d30da2970019297aab87898b344542/java-statsd-client-3.1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.timgroup/java-statsd-client/3.1.0/ed396fc10cadaae8705244e047679208bc192c53/java-statsd-client-3.1.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

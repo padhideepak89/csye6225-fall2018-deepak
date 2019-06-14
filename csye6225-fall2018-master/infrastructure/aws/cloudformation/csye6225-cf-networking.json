@@ -1,0 +1,465 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation template: Designed a template which which create a Vpc and InternetGateway.InternetGateway will be attached to VPC with RouteTable",
+  "Parameters": {
+    "VpcCIDR": {
+      "Type": "String",
+      "Description": "Ip address range for VPC",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PublicSubnet1": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2A availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PublicSubnet2": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2B availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PublicSubnet3": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2C availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PrivateSubnet1": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2A availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PrivateSubnet2": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2B availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "PrivateSubnet3": {
+      "Type": "String",
+      "Description": "Ip address range for subnet in US-EAST-2C availability zone",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "IP CIDR range must be a valid of the form x.x.x.x/x."
+    },
+    "AvailabilityZoneA": {
+      "Type": "String",
+      "Description": "Zone for subnet in US-EAST-1A"
+    },
+    "AvailabilityZoneB": {
+      "Type": "String",
+      "Description": "Zone for subnet in US-EAST-1B"
+    },
+    "AvailabilityZoneC": {
+      "Type": "String",
+      "Description": "Zone for subnet in US-EAST-1C"
+    },
+    "IpAddr": {
+      "Type": "String",
+      "Description": "Route attached to my route table connected with internet gateway"
+    }
+  },
+  "Resources": {
+    "myVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VpcCIDR"
+        },
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-vpc"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": true,
+        "CidrBlock": {
+          "Ref": "PublicSubnet1"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneA"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pubsubnet1"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": true,
+        "CidrBlock": {
+          "Ref": "PublicSubnet2"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneB"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pubsubnet2"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Subnet3": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": true,
+        "CidrBlock": {
+          "Ref": "PublicSubnet3"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pubsubnet3"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": false,
+        "CidrBlock": {
+          "Ref": "PrivateSubnet1"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneA"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pvtsubnet1"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": false,
+        "CidrBlock": {
+          "Ref": "PrivateSubnet2"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneB"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pvtsubnet2"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateSubnetC": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "MapPublicIpOnLaunch": false,
+        "CidrBlock": {
+          "Ref": "PrivateSubnet3"
+        },
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Pvtsubnet3"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "myInternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-Internetgateway"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "myInternetGateway"
+        }
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-PublicRoutetable"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "PrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "myVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  },
+                  "-csye6225-PrivateRoutetable"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "myRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": {
+          "Ref": "IpAddr"
+        },
+        "GatewayId": {
+          "Ref": "myInternetGateway"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet1"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet2"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociation3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "Subnet3"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociationA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetA"
+        },
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociationB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetB"
+        },
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        }
+      }
+    },
+    "mySubnetRouteTableAssociationC": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "PrivateSubnetC"
+        },
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "VPCId": {
+      "Description": "VPCId of the newly created VPC",
+      "Value": {
+        "Ref": "myVPC"
+      }
+    },
+    "InternetGateway": {
+      "Description": "Internet Gateway of newly created VPC",
+      "Value": {
+        "Ref": "myInternetGateway"
+      }
+    },
+    "PubRouteTable": {
+      "Description": "Route Table of newly created VPC attached to Internet Gateway",
+      "Value": {
+        "Ref": "PublicRouteTable"
+      }
+    },
+    "PriRouteTable": {
+      "Description": "Route Table of newly created Private Route Table",
+      "Value": {
+        "Ref": "PrivateRouteTable"
+      }
+    }
+  }
+}
